@@ -328,8 +328,8 @@ class PdfBoxSignatureService implements PDFSignatureService {
 						continue;
 					}
 
-					byte[] signedContent = signature.getSignedContent(originalBytes);
 					int[] byteRange = signature.getByteRange();
+					byte[] signedContent = signature.getSignedContent(originalBytes);
 
 					PdfSignatureOrDocTimestampInfo signatureInfo = null;
 					if (PdfBoxDocTimeStampService.SUB_FILTER_ETSI_RFC3161.getName().equals(subFilter)) {

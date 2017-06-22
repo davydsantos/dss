@@ -23,8 +23,6 @@ package eu.europa.esig.dss.pdf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import eu.europa.esig.dss.pdf.pdfbox.PdfBoxObjectFactory;
-
 /**
  * The usage of this interface permit the user to choose the underlying PDF
  * library use to created PDF signatures.
@@ -40,21 +38,25 @@ public abstract class PdfObjFactory {
 		if (INSTANCE == null) {
 			String factoryClassName = System.getProperty("dss.pdf_obj_factory");
 			if (factoryClassName != null) {
-				logger.info("Using '" + factoryClassName + "' as the PDF Object Factory Implementation");
-				try {
-					@SuppressWarnings("unchecked")
-					Class<PdfObjFactory> factoryClass = (Class<PdfObjFactory>) Class.forName(factoryClassName);
-					INSTANCE = factoryClass.newInstance();
-				} catch (Exception ex) {
-					logger.error("dss.pdf_obj_factory is '" + factoryClassName + "' but factory cannot be instantiated (fallback will be used)");
-				}
+				createPdfObjectFactory(factoryClassName);
 			}
 			if (INSTANCE == null) {
-				logger.info("Fallback to '" + PdfBoxObjectFactory.class.getName() + "' as the PDF Object Factory Implementation");
-				INSTANCE = new PdfBoxObjectFactory();
+				logger.info("Fallback to default PDF Object Factory Implementation");
+				createPdfObjectFactory("eu.europa.esig.dss.pdf.pdfbox.PdfBoxObjectFactory");
 			}
 		}
 		return INSTANCE;
+	}
+
+	protected static void createPdfObjectFactory(String factoryClassName) {
+		logger.info("Using '" + factoryClassName + "' as the PDF Object Factory Implementation");
+		try {
+			@SuppressWarnings("unchecked")
+			Class<PdfObjFactory> factoryClass = (Class<PdfObjFactory>) Class.forName(factoryClassName);
+			INSTANCE = factoryClass.newInstance();
+		} catch (Exception ex) {
+			logger.error("dss.pdf_obj_factory is '" + factoryClassName + "' but factory cannot be instantiated (fallback will be used)");
+		}
 	}
 
 	public abstract PDFSignatureService newPAdESSignatureService();
