@@ -408,6 +408,7 @@ public final class DSSUtils {
 								if (cert.isSignedBy(token)) {
 									issuerCert = token;
 									issuerCerts = certsCollection;
+									break;
 								}
 							}
 						}
