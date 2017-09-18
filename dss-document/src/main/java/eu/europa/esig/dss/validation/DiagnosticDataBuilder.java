@@ -384,16 +384,16 @@ public class DiagnosticDataBuilder {
 
 	private List<XmlChainItem> getXmlForCertificateChain(CertificateToken token) {
 		if (token != null) {
-
 			CertificateToken issuerToken_ = token;
+			Set<CertificateToken> processedTokens = new HashSet<>();
 			final List<XmlChainItem> certChainTokens = new ArrayList<XmlChainItem>();
 			do {
-
 				certChainTokens.add(getXmlChainItem(issuerToken_));
-				if (issuerToken_.isTrusted() || issuerToken_.isSelfSigned()) {
+				if (issuerToken_.isTrusted() || issuerToken_.isSelfSigned() || processedTokens.contains(issuerToken_)) {
 
 					break;
 				}
+				processedTokens.add(issuerToken_);
 				issuerToken_ = issuerToken_.getIssuerToken();
 			} while (issuerToken_ != null);
 			return certChainTokens;
