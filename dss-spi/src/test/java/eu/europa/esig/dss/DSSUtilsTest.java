@@ -171,6 +171,7 @@ public class DSSUtilsTest {
 
 		assertNotNull(issuers);
 		assertFalse(issuers.isEmpty());
+		assertEquals(3, issuers.size());
 		assertFalse("signature valid status should not change", certificate.isSignatureValid());
 		assertContainsIssuer(certificate, issuers);
 	}
