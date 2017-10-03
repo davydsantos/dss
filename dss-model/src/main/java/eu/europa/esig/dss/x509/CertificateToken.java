@@ -407,7 +407,7 @@ public class CertificateToken extends Token {
 		if (isSelfSigned() && isTrusted()) {
 			return this;
 		}
-		Set<CertificateToken> processedTokens = new HashSet<>();
+		Set<CertificateToken> processedTokens = new HashSet<CertificateToken>();
 		CertificateToken issuerCertToken = getIssuerToken();
 		while ((issuerCertToken != null) && (!processedTokens.contains(issuerCertToken))) {
 			processedTokens.add(issuerCertToken);

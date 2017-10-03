@@ -385,7 +385,7 @@ public class DiagnosticDataBuilder {
 	private List<XmlChainItem> getXmlForCertificateChain(CertificateToken token) {
 		if (token != null) {
 			CertificateToken issuerToken_ = token;
-			Set<CertificateToken> processedTokens = new HashSet<>();
+			Set<CertificateToken> processedTokens = new HashSet<CertificateToken>();
 			final List<XmlChainItem> certChainTokens = new ArrayList<XmlChainItem>();
 			do {
 				certChainTokens.add(getXmlChainItem(issuerToken_));
