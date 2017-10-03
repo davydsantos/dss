@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -567,8 +568,10 @@ public final class DSSASN1Utils {
 
 	private static List<String> getServiceSupplyPoints(CertificateToken certificateToken, String... keywords) {
 		List<String> urls = new ArrayList<String>();
+		Set<CertificateToken> processedCertificates = new HashSet<CertificateToken>();
 		CertificateToken issuerToken = certificateToken.getIssuerToken();
-		while (issuerToken != null) {
+		while ((issuerToken != null) && (!processedCertificates.contains(issuerToken))) {
+			processedCertificates.add(issuerToken);
 			if (issuerToken.isTrusted() && Utils.isCollectionNotEmpty(issuerToken.getAssociatedTSPS())) {
 				Set<ServiceInfo> services = issuerToken.getAssociatedTSPS();
 				for (ServiceInfo serviceInfo : services) {
