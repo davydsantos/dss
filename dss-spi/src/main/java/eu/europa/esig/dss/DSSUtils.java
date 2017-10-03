@@ -404,8 +404,10 @@ public final class DSSUtils {
 					} catch (DSSException dssEx) {
 						if (issuerCert == null) {
 							Collection<CertificateToken> certsCollection = loadCertificateFromP7c(is);
+							// Copy cert token so that signature valid state is not changed while searching for issuer
+							CertificateToken certForIssuerTest = new CertificateToken(cert.getCertificate());
 							for (CertificateToken token : certsCollection) {
-								if (cert.isSignedBy(token)) {
+								if (certForIssuerTest.isSignedBy(token)) {
 									issuerCert = token;
 									issuerCerts = certsCollection;
 									break;
