@@ -71,7 +71,7 @@ public class DSSUtilsTest {
 			if (urlResource == null) {
 				return null;
 			}
-			
+
 			Path resourcePath = Paths.get(new File(urlResource).toURI());
 			try {
 				byte[] content = Files.readAllBytes(resourcePath);
@@ -160,7 +160,7 @@ public class DSSUtilsTest {
 		CertificateToken certificate = DSSUtils.loadCertificate(new File("src/test/resources/citizen_ca.cer"));
 		assertNull(DSSUtils.loadIssuerCertificates(certificate, new NativeHTTPDataLoader()));
 	}
-	
+
 	@Test
 	public void testLoadIssuerWhenAiaReferencesP7CFileAndIssuerIsPresent() {
 		CertificateToken certificate = DSSUtils.loadCertificate(new File("src/test/resources/icp-brasil.crt"));		
@@ -175,7 +175,7 @@ public class DSSUtilsTest {
 		assertFalse("signature valid status should not change", certificate.isSignatureValid());
 		assertContainsIssuer(certificate, issuers);
 	}
-	
+
 	@Test
 	public void testLoadIssuerWhennAiaReferencesP7CFileAndIssuerIsNotPresent() {
 		CertificateToken certificate = DSSUtils.loadCertificate(new File("src/test/resources/icp-brasil.crt"));	
