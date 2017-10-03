@@ -164,7 +164,7 @@ public class DSSUtilsTest {
 	@Test
 	public void testLoadIssuerWhenAiaReferencesP7CFileAndIssuerIsPresent() {
 		CertificateToken certificate = DSSUtils.loadCertificate(new File("src/test/resources/icp-brasil.crt"));		
-		Map<String, String> mapUrlToResource = new HashMap<>();
+		Map<String, String> mapUrlToResource = new HashMap<String, String>();
 		mapUrlToResource.put("http://www.certificadodigital.com.br/cadeias/serasarfbv5.p7b", "src/test/resources/serasarfbv5.p7b");
 		DataLoader dataLoader = newLocalResourceDataLoader(mapUrlToResource); 
 
@@ -179,7 +179,7 @@ public class DSSUtilsTest {
 	@Test
 	public void testLoadIssuerWhennAiaReferencesP7CFileAndIssuerIsNotPresent() {
 		CertificateToken certificate = DSSUtils.loadCertificate(new File("src/test/resources/icp-brasil.crt"));	
-		Map<String, String> mapUrlToResource = new HashMap<>();
+		Map<String, String> mapUrlToResource = new HashMap<String, String>();
 		mapUrlToResource.put("http://www.certificadodigital.com.br/cadeias/serasarfbv5.p7b", "src/test/resources/serasarfbv2.p7b");
 		DataLoader dataLoader = newLocalResourceDataLoader(mapUrlToResource); 
 
