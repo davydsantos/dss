@@ -13,14 +13,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.junit.BeforeClass;
@@ -29,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import eu.europa.esig.dss.client.http.DataLoader;
+import eu.europa.esig.dss.client.http.LocalResourceDataLoader;
 import eu.europa.esig.dss.client.http.NativeHTTPDataLoader;
 import eu.europa.esig.dss.utils.Utils;
 import eu.europa.esig.dss.x509.CertificateToken;
@@ -54,68 +51,6 @@ public class DSSUtilsTest {
 			}
 		}
 		assertTrue(foundIssuer);
-	}
-	
-	private class LocalResourcerDataLoader implements DataLoader {
-		private static final long serialVersionUID = 6195089823689409447L;
-
-		private Map<String, String> mapUrlToResource;
-
-		public LocalResourcerDataLoader(Map<String, String> mapUrlToResource) {
-			this.mapUrlToResource = mapUrlToResource;
-		}
-
-		private byte[] loadContent(String url) {
-			String urlResource = mapUrlToResource.get(url);			
-			if (urlResource == null) {
-				return null;
-			}
-
-			Path resourcePath = Paths.get(new File(urlResource).toURI());
-			try {
-				byte[] content = Files.readAllBytes(resourcePath);
-				return content;
-			} catch (IOException e) {
-				return null;
-			}
-		}
-		
-		@Override
-		public void setContentType(String contentType) {
-			// Ignore
-		}
-
-		@Override
-		public byte[] post(String url, byte[] content) {
-			// Ignore
-			return null;
-		}
-
-		@Override
-		public byte[] get(String url, boolean refresh) {
-			return get(url);
-		}
-
-		@Override
-		public DataAndUrl get(List<String> urlStrings) {
-			for (String url : urlStrings) {			
-				byte[] content = get(url);
-				if (content != null) {
-					return new DataAndUrl(content, url);
-				}				
-			}
-
-			return null;
-		}
-
-		@Override
-		public byte[] get(String url) {
-			return loadContent(url);
-		}		
-	}
-	
-	private DataLoader newLocalResourceDataLoader(Map<String, String> mapUrlToResource) {
-		return new LocalResourcerDataLoader(mapUrlToResource);
 	}
 	
 	@Test
@@ -165,7 +100,7 @@ public class DSSUtilsTest {
 		CertificateToken certificate = DSSUtils.loadCertificate(new File("src/test/resources/icp-brasil.crt"));		
 		Map<String, String> mapUrlToResource = new HashMap<String, String>();
 		mapUrlToResource.put("http://www.certificadodigital.com.br/cadeias/serasarfbv5.p7b", "src/test/resources/serasarfbv5.p7b");
-		DataLoader dataLoader = newLocalResourceDataLoader(mapUrlToResource); 
+		DataLoader dataLoader = new LocalResourceDataLoader(mapUrlToResource);
 
 		Collection<CertificateToken> issuers = DSSUtils.loadIssuerCertificates(certificate, dataLoader);
 
@@ -181,7 +116,7 @@ public class DSSUtilsTest {
 		CertificateToken certificate = DSSUtils.loadCertificate(new File("src/test/resources/icp-brasil.crt"));	
 		Map<String, String> mapUrlToResource = new HashMap<String, String>();
 		mapUrlToResource.put("http://www.certificadodigital.com.br/cadeias/serasarfbv5.p7b", "src/test/resources/serasarfbv2.p7b");
-		DataLoader dataLoader = newLocalResourceDataLoader(mapUrlToResource); 
+		DataLoader dataLoader = new LocalResourceDataLoader(mapUrlToResource);
 
 		Collection<CertificateToken> issuers = DSSUtils.loadIssuerCertificates(certificate, dataLoader);
 
