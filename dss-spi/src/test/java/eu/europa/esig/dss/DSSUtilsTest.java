@@ -16,12 +16,16 @@ import java.io.UnsupportedEncodingException;
 import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import eu.europa.esig.dss.client.http.DataLoader;
+import eu.europa.esig.dss.client.http.LocalResourceDataLoader;
 import eu.europa.esig.dss.client.http.NativeHTTPDataLoader;
 import eu.europa.esig.dss.utils.Utils;
 import eu.europa.esig.dss.x509.CertificateToken;
@@ -38,18 +42,23 @@ public class DSSUtilsTest {
 		assertNotNull(certificateWithAIA);
 	}
 
+	private void assertContainsIssuer(CertificateToken targetCertificate, Collection<CertificateToken> issuers) {
+		boolean foundIssuer = false;
+		for (CertificateToken issuer : issuers) {
+			if (targetCertificate.isSignedBy(issuer)) {
+				foundIssuer = true;
+				break;
+			}
+		}
+		assertTrue(foundIssuer);
+	}
+	
 	@Test
 	public void testLoadIssuer() {
 		Collection<CertificateToken> issuers = DSSUtils.loadIssuerCertificates(certificateWithAIA, new NativeHTTPDataLoader());
 		assertNotNull(issuers);
 		assertFalse(issuers.isEmpty());
-		boolean foundIssuer = false;
-		for (CertificateToken issuer : issuers) {
-			if (certificateWithAIA.isSignedBy(issuer)) {
-				foundIssuer = true;
-			}
-		}
-		assertTrue(foundIssuer);
+		assertContainsIssuer(certificateWithAIA, issuers);
 	}
 
 	@Test
@@ -84,6 +93,35 @@ public class DSSUtilsTest {
 	public void testLoadIssuerNoAIA() {
 		CertificateToken certificate = DSSUtils.loadCertificate(new File("src/test/resources/citizen_ca.cer"));
 		assertNull(DSSUtils.loadIssuerCertificates(certificate, new NativeHTTPDataLoader()));
+	}
+
+	@Test
+	public void testLoadIssuerWhenAiaReferencesP7CFileAndIssuerIsPresent() {
+		CertificateToken certificate = DSSUtils.loadCertificate(new File("src/test/resources/icp-brasil.crt"));		
+		Map<String, String> mapUrlToResource = new HashMap<String, String>();
+		mapUrlToResource.put("http://www.certificadodigital.com.br/cadeias/serasarfbv5.p7b", "src/test/resources/serasarfbv5.p7b");
+		DataLoader dataLoader = new LocalResourceDataLoader(mapUrlToResource);
+
+		Collection<CertificateToken> issuers = DSSUtils.loadIssuerCertificates(certificate, dataLoader);
+
+		assertNotNull(issuers);
+		assertFalse(issuers.isEmpty());
+		assertEquals(3, issuers.size());
+		assertFalse("signature valid status should not change", certificate.isSignatureValid());
+		assertContainsIssuer(certificate, issuers);
+	}
+
+	@Test
+	public void testLoadIssuerWhennAiaReferencesP7CFileAndIssuerIsNotPresent() {
+		CertificateToken certificate = DSSUtils.loadCertificate(new File("src/test/resources/icp-brasil.crt"));	
+		Map<String, String> mapUrlToResource = new HashMap<String, String>();
+		mapUrlToResource.put("http://www.certificadodigital.com.br/cadeias/serasarfbv5.p7b", "src/test/resources/serasarfbv2.p7b");
+		DataLoader dataLoader = new LocalResourceDataLoader(mapUrlToResource);
+
+		Collection<CertificateToken> issuers = DSSUtils.loadIssuerCertificates(certificate, dataLoader);
+
+		assertNull(issuers);
+		assertFalse("signature valid status should not change", certificate.isSignatureValid());
 	}
 
 	@Test

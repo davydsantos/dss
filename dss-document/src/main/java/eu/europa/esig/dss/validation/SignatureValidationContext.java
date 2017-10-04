@@ -234,6 +234,9 @@ public class SignatureValidationContext implements ValidationContext {
 					}
 					LOG.info("The retrieved certificate using AIA does not sign the certificate {}.", token.getAbbreviation());
 				}
+				if (issuerCertToken != null) {
+					token.isSignedBy(issuerCertToken);  // restore token validation state
+				}
 				return issuerCertToken;
 			} else {
 				LOG.info("The issuer certificate cannot be loaded using AIA.");
