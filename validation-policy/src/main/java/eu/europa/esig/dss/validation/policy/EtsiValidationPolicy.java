@@ -120,8 +120,17 @@ public class EtsiValidationPolicy implements ValidationPolicy {
 		}
 		return null;
 	}
-
+	
 	@Override
+	public LevelConstraint getSignaturePolicyFormalPolicyValid(Context context) {
+		SignatureConstraints signatureConstraints = getSignatureConstraintsByContext(context);
+		if (signatureConstraints != null) {
+			return signatureConstraints.getFormalPolicyValidation();
+		}
+		return null;
+	}
+
+    @Override
 	public MultiValuesConstraint getSignatureFormatConstraint(Context context) {
 		SignatureConstraints signatureConstraints = getSignatureConstraintsByContext(context);
 		if (signatureConstraints != null) {
@@ -129,6 +138,8 @@ public class EtsiValidationPolicy implements ValidationPolicy {
 		}
 		return null;
 	}
+	
+	
 
 	@Override
 	public LevelConstraint getStructuralValidationConstraint(Context context) {
@@ -261,7 +272,12 @@ public class EtsiValidationPolicy implements ValidationPolicy {
 	public CryptographicConstraint getSignatureCryptographicConstraint(Context context) {
 		BasicSignatureConstraints basicSignature = getBasicSignatureConstraintsByContext(context);
 		if (basicSignature != null) {
-			return basicSignature.getCryptographic();
+			CryptographicConstraint sigCryptographic = basicSignature.getCryptographic();
+			if (sigCryptographic == null) {
+				return getDefaultCryptographicConstraint();
+			} else {
+				return sigCryptographic;
+			}
 		}
 		return null;
 	}
@@ -270,9 +286,18 @@ public class EtsiValidationPolicy implements ValidationPolicy {
 	public CryptographicConstraint getCertificateCryptographicConstraint(Context context, SubContext subContext) {
 		CertificateConstraints certificateConstraints = getCertificateConstraints(context, subContext);
 		if (certificateConstraints != null) {
-			return certificateConstraints.getCryptographic();
+			CryptographicConstraint certCryptographic = certificateConstraints.getCryptographic();
+			if (certCryptographic == null) {
+				return getDefaultCryptographicConstraint();
+			} else {
+				return certCryptographic;
+			}
 		}
 		return null;
+	}
+
+	private CryptographicConstraint getDefaultCryptographicConstraint() {
+		return policy.getCryptographic();
 	}
 
 	@Override
