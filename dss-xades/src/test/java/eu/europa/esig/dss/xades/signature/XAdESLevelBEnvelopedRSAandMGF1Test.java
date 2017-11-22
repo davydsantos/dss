@@ -49,7 +49,7 @@ public class XAdESLevelBEnvelopedRSAandMGF1Test extends AbstractPkiFactoryTestDo
 		signatureParameters = new XAdESSignatureParameters();
 		signatureParameters.bLevel().setSigningDate(new Date());
 		signatureParameters.setDigestAlgorithm(DigestAlgorithm.SHA1);
-		signatureParameters.setMaskGenerationFunction(MaskGenerationFunction.MGF1_SHA1);
+		signatureParameters.setMaskGenerationFunction(MaskGenerationFunction.MGF1);
 		signatureParameters.setSigningCertificate(getSigningCert());
 		signatureParameters.setCertificateChain(getCertificateChain());
 		signatureParameters.setSignaturePackaging(SignaturePackaging.ENVELOPED);
