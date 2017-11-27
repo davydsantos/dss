@@ -25,9 +25,11 @@ import java.io.InputStream;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertStore;
+import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.ResourceBundle;
 import java.util.Set;
 
 import org.bouncycastle.asn1.ASN1InputStream;
@@ -79,12 +81,20 @@ public class FullCAdESSignaturePolicyValidator extends BasicASNSignaturePolicyVa
 	private Set<CertificateToken> signerCertPath = null;
 
 	private SignaturePolicy asn1SignaturePolicy;
+	
+	private ResourceBundle bundle;
+	
+	private static final String BUNDLE = "fullcadesvalidationmessages";
+	
+	
 
 	public FullCAdESSignaturePolicyValidator() {
+		bundle = ResourceBundle.getBundle(BUNDLE);
 	}
 
 	public FullCAdESSignaturePolicyValidator(CAdESSignature sig) {
 		setSignature(sig);
+		bundle = ResourceBundle.getBundle(BUNDLE);
 	}
 	
 	@Override
@@ -105,7 +115,7 @@ public class FullCAdESSignaturePolicyValidator extends BasicASNSignaturePolicyVa
 			}
 		} catch(DSSException e) {
 			LOG.error("Unexpected error", e);
-			addError("general", "Unexpected error: " + e.getMessage());
+			addErrors("general", e.getMessage());
 		}
 		
 		
@@ -119,13 +129,13 @@ public class FullCAdESSignaturePolicyValidator extends BasicASNSignaturePolicyVa
 		) {
 			ASN1Primitive asn1SP = asn1is.readObject();
 			if (asn1SP == null) {
-				throw new DSSException("No content found under signature policy");
+				throw new DSSException(getProperty("sigPolicy.noContent"));
 			}
 			sigPolicy = ASN1SignaturePolicy.getInstance(asn1SP);
 		} catch (IOException e) {
 			// If the sigPolicy was loaded successfully, don't bubble up the error on stream close
 			if (sigPolicy == null) {
-				throw new DSSException("Error reading signature policy", e);
+				throw new DSSException(getProperty("sigPolicy.unreadable"), e);
 			}
 		}
 		return sigPolicy;
@@ -138,7 +148,7 @@ public class FullCAdESSignaturePolicyValidator extends BasicASNSignaturePolicyVa
 	private void validateSignaturePolicyCommitmentRules() {		
 		ItemValidator itemValidator = SignPolExtensionValidatorFactory.createValidator(getSignature(), getSignatureValidationPolicy());
 		if (!itemValidator.validate()) {
-			addError("signatureValidationPolicy.signPolExtensions", "Error validating signature policy extension: "+itemValidator.getErrorDetail());
+			addErrors("signatureValidationPolicy.signPolExtensions", itemValidator.getErrorDetail());
 		}
 		
 		Set<CommitmentRule> cmmtRules = findCommitmentRule(getSignature().getCommitmentTypeIndication() == null? null: getSignature().getCommitmentTypeIndication().getIdentifiers());
@@ -154,7 +164,7 @@ public class FullCAdESSignaturePolicyValidator extends BasicASNSignaturePolicyVa
 			
 			itemValidator = SignPolExtensionValidatorFactory.createValidator(getSignature(), cmmtRule);
 			if (!itemValidator.validate()) {
-				addError("commitmentRule.signPolExtensions", "Error validating signature policy extension: "+itemValidator.getErrorDetail());
+				addErrors("commitmentRule.signPolExtensions",  itemValidator.getErrorDetail());
 			}
 		}
 	}
@@ -162,19 +172,19 @@ public class FullCAdESSignaturePolicyValidator extends BasicASNSignaturePolicyVa
 	private void validateSigningCertTrustContition(SigningCertTrustCondition signingCertTrustCondition) {
 		RevReqValidator revReqValidator = new RevReqValidator(signingCertTrustCondition.getSignerRevReq().getEndCertRevReq(), getSignature().getSigningCertificateToken());
 		if (!revReqValidator.validate()) {
-			addError("signingCertTrustCondition.signerRevReq.endCertRevReq", "End certificate is revoked");
+			addErrors("signingCertTrustCondition.signerRevReq.endCertRevReq");
 		}
 		try {
 			signerCertPath = buildTrustedCertificationPath(getSignature().getSigningCertificateToken(), signingCertTrustCondition.getSignerTrustTrees());
 			if (signerCertPath.isEmpty()) {
-				addError("signingCertTrustCondition.signerTrustTrees", "Could not build certification path to a trust point");
+				addErrors("signingCertTrustCondition.signerTrustTrees");
 			}
 
 			if (!validateRevReq(signerCertPath, signingCertTrustCondition.getSignerRevReq())) {
-				addError("signingCertTrustCondition.signerRevReq.endCertRevReq", "One of the CA certificates is revoked");
+				addErrors("signingCertTrustCondition.signerRevReq.endCertRevReq");
 			}
 		} catch (InvalidAlgorithmParameterException | NoSuchAlgorithmException | IOException e) {
-			addError("signingCertTrustCondition", "unexpected error");
+			addErrors("signingCertTrustCondition");
 			LOG.warn("Error on validating signingCertTrustCondition", e);
 		}
 	}
@@ -187,7 +197,7 @@ public class FullCAdESSignaturePolicyValidator extends BasicASNSignaturePolicyVa
 			}
 			RevReqValidator revReqValidator = new RevReqValidator(revReqConstraints.getCaCerts(), certificate);
 			if (!revReqValidator.validate()) {
-				LOG.debug("Certificate revocation check failled with constraints {} for {}", revReqConstraints.getCaCerts(), certificate);
+				LOG.debug(getProperty("evReqConstraints.error", revReqConstraints.getCaCerts(), certificate));
 				return false;
 			}
 		}
@@ -216,21 +226,21 @@ public class FullCAdESSignaturePolicyValidator extends BasicASNSignaturePolicyVa
 			if (timeStampTrustCondition.getTtsRevReq() != null && timeStampTrustCondition.getTtsRevReq() != null ) {
 				RevReqValidator revReqValidator = new RevReqValidator(timeStampTrustCondition.getTtsRevReq().getEndCertRevReq(), signatureTimestamp.getIssuerToken());
 				if (!revReqValidator.validate()) {
-					addError("timeStampTrustCondition.ttsRevReq.endCertRevReq", "End certificate is revoked");
+					addErrors("timeStampTrustCondition.ttsRevReq.endCertRevReq");
 				}
 			}
 			if (timeStampTrustCondition.getTtsCertificateTrustTrees() != null || timeStampTrustCondition.getTtsRevReq() != null) {
 				try {
 					Set<CertificateToken> ttsCertPath = buildTrustedCertificationPath(signatureTimestamp.getIssuerToken(), timeStampTrustCondition.getTtsCertificateTrustTrees());
 					if (ttsCertPath.isEmpty()) {
-						addError("timeStampTrustCondition.ttsCertificateTrustTrees", "Could not build certification path to a trust point");
+						addErrors("timeStampTrustCondition.ttsCertificateTrustTrees");
 					}
 		
 					if (!validateRevReq(ttsCertPath, timeStampTrustCondition.getTtsRevReq())) {
-						addError("timeStampTrustCondition.ttsRevReq.endCertRevReq", "One of the CA certificates is revoked");
+						addErrors("timeStampTrustCondition.ttsRevReq.endCertRevReq");
 					}
 				} catch (InvalidAlgorithmParameterException | NoSuchAlgorithmException | IOException e) {
-					addError("timeStampTrustCondition", "unexpected error");
+					addErrors("timeStampTrustCondition");
 					LOG.warn("Error on validating timeStampTrustCondition", e);
 				}
 			}
@@ -249,55 +259,55 @@ public class FullCAdESSignaturePolicyValidator extends BasicASNSignaturePolicyVa
 	private void validateSignerRules(SignerRules signerRules) {
 		CAdESSignerRulesExternalDataValidator externalDataValidator = new CAdESSignerRulesExternalDataValidator(getCadesSignature(), signerRules.getExternalSignedData());
 		if (!externalDataValidator.validate()) {
-			addError("signerRules.externalSignedData", "Expected to be: " + signerRules.getExternalSignedData());
+			addErrors("signerRules.externalSignedData", signerRules.getExternalSignedData());
 		}
 		
 		CmsSignatureAttributesValidator attributesValidator = new CmsSignatureAttributesValidator(signerRules.getMandatedSignedAttr(), CMSUtils.getSignedAttributes(getCadesSignature().getSignerInformation()));
 		if (!attributesValidator.validate()) {
-			addError("signerRules.mandatedSignedAttr", "Signed attributes missing: " + attributesValidator.getMissingAttributes());
+			addErrors("signerRules.mandatedSignedAttr", attributesValidator.getMissingAttributes());
 		}
 		attributesValidator = new CmsSignatureAttributesValidator(signerRules.getMandatedUnsignedAttr(), CMSUtils.getUnsignedAttributes(getCadesSignature().getSignerInformation()));
 		if (!attributesValidator.validate()) {
-			addError("signerRules.mandatedUnsignedAttr", "Unsigned attributes missing: " + attributesValidator.getMissingAttributes());
+			addErrors("signerRules.mandatedUnsignedAttr", attributesValidator.getMissingAttributes());
 		}
 		CAdESCertRefReqValidator certRefReqValidator = new CAdESCertRefReqValidator(signerRules.getMandatedCertificateRef(), getCadesSignature(), signerCertPath);
 		if (!certRefReqValidator.validate()) {
 			if (signerRules.getMandatedCertificateRef() == CertRefReq.signerOnly) {
 				if (certRefReqValidator.containsAdditionalCertRef()) {
-					addError("signerRules.mandatedCertificateRef", "Found more certificate references than expected");
+					addErrors("signerRules.mandatedCertificateRef");
 				} else {
-					addError("signerRules.mandatedCertificateRef", "No signing certificate reference found");
+					addErrors("signerRules.mandatedCertificateRef");
 				}
 			} else {
-				addError("signerRules.mandatedCertificateRef", "Found less references than expected");
+				addErrors("signerRules.mandatedCertificateRef");
 			}
 		}
 		
 		if (!new CertInfoReqValidator(signerRules.getMandatedCertificateInfo(), getCadesSignature(), signerCertPath).validate()) {
 			if (signerRules.getMandatedCertificateInfo() == CertInfoReq.none) {
-				addError("signerRules.mandatedCertificateInfo", "Should not have any certificates in the signature");
+				addErrors("signerRules.mandatedCertificateInfo");
 			} else if (signerRules.getMandatedCertificateInfo() == CertInfoReq.signerOnly) {
-				addError("signerRules.mandatedCertificateInfo", "Should have only the signer certificate in the signature");
+				addErrors("signerRules.mandatedCertificateInfo");
 			} else if (signerRules.getMandatedCertificateInfo() == CertInfoReq.fullPath) {
-				addError("signerRules.mandatedCertificateInfo", "Should have the signer certificate full path in the signature");
+				addErrors("signerRules.mandatedCertificateInfo");
 			}
 		}
 		
 		ItemValidator itemValidator = SignPolExtensionValidatorFactory.createValidator(getSignature(), signerRules);
 		if (!itemValidator.validate()) {
-			addError("signerRules.signPolExtensions", "Error validating signature policy extension: "+itemValidator.getErrorDetail());
+			addErrors("signerRules.signPolExtensions", itemValidator.getErrorDetail());
 		}
 	}
 
 	private void validateVerifierRules(VerifierRules verifierRules) {
 		CmsSignatureAttributesValidator attributesValidator = new CmsSignatureAttributesValidator(verifierRules.getMandatedUnsignedAttr(), CMSUtils.getUnsignedAttributes(getCadesSignature().getSignerInformation()));
 		if (!attributesValidator.validate()) {
-			addError("verifierRules.mandatedUnsignedAttr", "Unsigned attributes missing: " + attributesValidator.getMissingAttributes());
+			addErrors("verifierRules.mandatedUnsignedAttr", attributesValidator.getMissingAttributes());
 		}
 		
 		ItemValidator itemValidator = SignPolExtensionValidatorFactory.createValidator(getSignature(), verifierRules);
 		if (!itemValidator.validate()) {
-			addError("verifierRules.signPolExtensions", "Error validating signature policy extension: "+itemValidator.getErrorDetail());
+			addErrors("verifierRules.signPolExtensions", itemValidator.getErrorDetail());
 		}
 	}
 
@@ -318,7 +328,7 @@ public class FullCAdESSignaturePolicyValidator extends BasicASNSignaturePolicyVa
 	private void validateAlgorithmConstraintSet(AlgorithmConstraintSet algorithmConstraintSet) {
 		ItemValidator validator = new AlgorithmConstraintSetValidator(algorithmConstraintSet.getSignerAlgorithmConstraints(), getCadesSignature());
 		if (!validator.validate()) {
-			addError("algorithmConstraintSet.signerAlgorithmConstraints", "Couldn't find minimum requirements for signer constraints");
+			addErrors("algorithmConstraintSet.signerAlgorithmConstraints");
 		}
 		
 		// TODO eeCertAlgorithmConstraints
@@ -346,7 +356,7 @@ public class FullCAdESSignaturePolicyValidator extends BasicASNSignaturePolicyVa
 		// "... the electronic signature must contain a commitment type indication
 		// that must fit one of the commitments types that are mentioned in
 		// CommitmentType."
-		throw new DSSException("The commitment type used was not found");
+		throw new DSSException(getProperty("CommitmentRule.notFound"));
 	}
 
 	protected SignatureValidationPolicy getSignatureValidationPolicy() {
@@ -363,5 +373,13 @@ public class FullCAdESSignaturePolicyValidator extends BasicASNSignaturePolicyVa
 
 	private boolean isCadesSignature() {
 		return getSignature() instanceof CAdESSignature;
+	}
+	
+	protected void addErrors(String key, Object... extraParams) {
+		super.addError(key, getProperty(key, extraParams));
+	}
+
+	private String getProperty(String key, Object... extraParams) {
+		return MessageFormat.format(bundle.getString(key), extraParams);
 	}
 }
