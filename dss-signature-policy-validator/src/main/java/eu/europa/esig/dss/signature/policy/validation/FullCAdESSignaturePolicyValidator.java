@@ -115,7 +115,7 @@ public class FullCAdESSignaturePolicyValidator extends BasicASNSignaturePolicyVa
 			}
 		} catch(DSSException e) {
 			LOG.error("Unexpected error", e);
-			addErrors("general", e.getMessage());
+			addError("general", e.getMessage());
 		}
 		
 		
@@ -148,7 +148,7 @@ public class FullCAdESSignaturePolicyValidator extends BasicASNSignaturePolicyVa
 	private void validateSignaturePolicyCommitmentRules() {		
 		ItemValidator itemValidator = SignPolExtensionValidatorFactory.createValidator(getSignature(), getSignatureValidationPolicy());
 		if (!itemValidator.validate()) {
-			addErrors("signatureValidationPolicy.signPolExtensions", itemValidator.getErrorDetail());
+			addError("signatureValidationPolicy.signPolExtensions", itemValidator.getErrorDetail());
 		}
 		
 		Set<CommitmentRule> cmmtRules = findCommitmentRule(getSignature().getCommitmentTypeIndication() == null? null: getSignature().getCommitmentTypeIndication().getIdentifiers());
@@ -164,7 +164,7 @@ public class FullCAdESSignaturePolicyValidator extends BasicASNSignaturePolicyVa
 			
 			itemValidator = SignPolExtensionValidatorFactory.createValidator(getSignature(), cmmtRule);
 			if (!itemValidator.validate()) {
-				addErrors("commitmentRule.signPolExtensions",  itemValidator.getErrorDetail());
+				addError("commitmentRule.signPolExtensions",  itemValidator.getErrorDetail());
 			}
 		}
 	}
@@ -172,19 +172,19 @@ public class FullCAdESSignaturePolicyValidator extends BasicASNSignaturePolicyVa
 	private void validateSigningCertTrustContition(SigningCertTrustCondition signingCertTrustCondition) {
 		RevReqValidator revReqValidator = new RevReqValidator(signingCertTrustCondition.getSignerRevReq().getEndCertRevReq(), getSignature().getSigningCertificateToken());
 		if (!revReqValidator.validate()) {
-			addErrors("signingCertTrustCondition.signerRevReq.endCertRevReq");
+			addError("signingCertTrustCondition.signerRevReq.endCertRevReq");
 		}
 		try {
 			signerCertPath = buildTrustedCertificationPath(getSignature().getSigningCertificateToken(), signingCertTrustCondition.getSignerTrustTrees());
 			if (signerCertPath.isEmpty()) {
-				addErrors("signingCertTrustCondition.signerTrustTrees");
+				addError("signingCertTrustCondition.signerTrustTrees");
 			}
 
 			if (!validateRevReq(signerCertPath, signingCertTrustCondition.getSignerRevReq())) {
-				addErrors("signingCertTrustCondition.signerRevReq.endCertRevReq");
+				addError("signingCertTrustCondition.signerRevReq.endCertRevReq");
 			}
 		} catch (InvalidAlgorithmParameterException | NoSuchAlgorithmException | IOException e) {
-			addErrors("signingCertTrustCondition");
+			addError("signingCertTrustCondition");
 			LOG.warn("Error on validating signingCertTrustCondition", e);
 		}
 	}
@@ -226,21 +226,21 @@ public class FullCAdESSignaturePolicyValidator extends BasicASNSignaturePolicyVa
 			if (timeStampTrustCondition.getTtsRevReq() != null && timeStampTrustCondition.getTtsRevReq() != null ) {
 				RevReqValidator revReqValidator = new RevReqValidator(timeStampTrustCondition.getTtsRevReq().getEndCertRevReq(), signatureTimestamp.getIssuerToken());
 				if (!revReqValidator.validate()) {
-					addErrors("timeStampTrustCondition.ttsRevReq.endCertRevReq");
+					addError("timeStampTrustCondition.ttsRevReq.endCertRevReq");
 				}
 			}
 			if (timeStampTrustCondition.getTtsCertificateTrustTrees() != null || timeStampTrustCondition.getTtsRevReq() != null) {
 				try {
 					Set<CertificateToken> ttsCertPath = buildTrustedCertificationPath(signatureTimestamp.getIssuerToken(), timeStampTrustCondition.getTtsCertificateTrustTrees());
 					if (ttsCertPath.isEmpty()) {
-						addErrors("timeStampTrustCondition.ttsCertificateTrustTrees");
+						addError("timeStampTrustCondition.ttsCertificateTrustTrees");
 					}
 		
 					if (!validateRevReq(ttsCertPath, timeStampTrustCondition.getTtsRevReq())) {
-						addErrors("timeStampTrustCondition.ttsRevReq.endCertRevReq");
+						addError("timeStampTrustCondition.ttsRevReq.endCertRevReq");
 					}
 				} catch (InvalidAlgorithmParameterException | NoSuchAlgorithmException | IOException e) {
-					addErrors("timeStampTrustCondition");
+					addError("timeStampTrustCondition");
 					LOG.warn("Error on validating timeStampTrustCondition", e);
 				}
 			}
@@ -259,55 +259,55 @@ public class FullCAdESSignaturePolicyValidator extends BasicASNSignaturePolicyVa
 	private void validateSignerRules(SignerRules signerRules) {
 		CAdESSignerRulesExternalDataValidator externalDataValidator = new CAdESSignerRulesExternalDataValidator(getCadesSignature(), signerRules.getExternalSignedData());
 		if (!externalDataValidator.validate()) {
-			addErrors("signerRules.externalSignedData", signerRules.getExternalSignedData());
+			addError("signerRules.externalSignedData", signerRules.getExternalSignedData());
 		}
 		
 		CmsSignatureAttributesValidator attributesValidator = new CmsSignatureAttributesValidator(signerRules.getMandatedSignedAttr(), CMSUtils.getSignedAttributes(getCadesSignature().getSignerInformation()));
 		if (!attributesValidator.validate()) {
-			addErrors("signerRules.mandatedSignedAttr", attributesValidator.getMissingAttributes());
+			addError("signerRules.mandatedSignedAttr", attributesValidator.getMissingAttributes());
 		}
 		attributesValidator = new CmsSignatureAttributesValidator(signerRules.getMandatedUnsignedAttr(), CMSUtils.getUnsignedAttributes(getCadesSignature().getSignerInformation()));
 		if (!attributesValidator.validate()) {
-			addErrors("signerRules.mandatedUnsignedAttr", attributesValidator.getMissingAttributes());
+			addError("signerRules.mandatedUnsignedAttr", attributesValidator.getMissingAttributes());
 		}
 		CAdESCertRefReqValidator certRefReqValidator = new CAdESCertRefReqValidator(signerRules.getMandatedCertificateRef(), getCadesSignature(), signerCertPath);
 		if (!certRefReqValidator.validate()) {
 			if (signerRules.getMandatedCertificateRef() == CertRefReq.signerOnly) {
 				if (certRefReqValidator.containsAdditionalCertRef()) {
-					addErrors("signerRules.mandatedCertificateRef");
+					addError("signerRules.mandatedCertificateRef");
 				} else {
-					addErrors("signerRules.mandatedCertificateRef");
+					addError("signerRules.mandatedCertificateRef");
 				}
 			} else {
-				addErrors("signerRules.mandatedCertificateRef");
+				addError("signerRules.mandatedCertificateRef");
 			}
 		}
 		
 		if (!new CertInfoReqValidator(signerRules.getMandatedCertificateInfo(), getCadesSignature(), signerCertPath).validate()) {
 			if (signerRules.getMandatedCertificateInfo() == CertInfoReq.none) {
-				addErrors("signerRules.mandatedCertificateInfo");
+				addError("signerRules.mandatedCertificateInfo");
 			} else if (signerRules.getMandatedCertificateInfo() == CertInfoReq.signerOnly) {
-				addErrors("signerRules.mandatedCertificateInfo");
+				addError("signerRules.mandatedCertificateInfo");
 			} else if (signerRules.getMandatedCertificateInfo() == CertInfoReq.fullPath) {
-				addErrors("signerRules.mandatedCertificateInfo");
+				addError("signerRules.mandatedCertificateInfo");
 			}
 		}
 		
 		ItemValidator itemValidator = SignPolExtensionValidatorFactory.createValidator(getSignature(), signerRules);
 		if (!itemValidator.validate()) {
-			addErrors("signerRules.signPolExtensions", itemValidator.getErrorDetail());
+			addError("signerRules.signPolExtensions", itemValidator.getErrorDetail());
 		}
 	}
 
 	private void validateVerifierRules(VerifierRules verifierRules) {
 		CmsSignatureAttributesValidator attributesValidator = new CmsSignatureAttributesValidator(verifierRules.getMandatedUnsignedAttr(), CMSUtils.getUnsignedAttributes(getCadesSignature().getSignerInformation()));
 		if (!attributesValidator.validate()) {
-			addErrors("verifierRules.mandatedUnsignedAttr", attributesValidator.getMissingAttributes());
+			addError("verifierRules.mandatedUnsignedAttr", attributesValidator.getMissingAttributes());
 		}
 		
 		ItemValidator itemValidator = SignPolExtensionValidatorFactory.createValidator(getSignature(), verifierRules);
 		if (!itemValidator.validate()) {
-			addErrors("verifierRules.signPolExtensions", itemValidator.getErrorDetail());
+			addError("verifierRules.signPolExtensions", itemValidator.getErrorDetail());
 		}
 	}
 
@@ -328,7 +328,7 @@ public class FullCAdESSignaturePolicyValidator extends BasicASNSignaturePolicyVa
 	private void validateAlgorithmConstraintSet(AlgorithmConstraintSet algorithmConstraintSet) {
 		ItemValidator validator = new AlgorithmConstraintSetValidator(algorithmConstraintSet.getSignerAlgorithmConstraints(), getCadesSignature());
 		if (!validator.validate()) {
-			addErrors("algorithmConstraintSet.signerAlgorithmConstraints");
+			addError("algorithmConstraintSet.signerAlgorithmConstraints");
 		}
 		
 		// TODO eeCertAlgorithmConstraints
@@ -356,7 +356,7 @@ public class FullCAdESSignaturePolicyValidator extends BasicASNSignaturePolicyVa
 		// "... the electronic signature must contain a commitment type indication
 		// that must fit one of the commitments types that are mentioned in
 		// CommitmentType."
-		throw new DSSException(getProperty("CommitmentRule.notFound"));
+		throw new DSSException(getProperty("commitmentRule.notFound"));
 	}
 
 	protected SignatureValidationPolicy getSignatureValidationPolicy() {
@@ -375,7 +375,7 @@ public class FullCAdESSignaturePolicyValidator extends BasicASNSignaturePolicyVa
 		return getSignature() instanceof CAdESSignature;
 	}
 	
-	protected void addErrors(String key, Object... extraParams) {
+	protected void addError(String key, Object... extraParams) {
 		super.addError(key, getProperty(key, extraParams));
 	}
 
