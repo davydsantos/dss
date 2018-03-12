@@ -13,7 +13,7 @@
 	<repositories>
 		<repository>
             <id>joinup-dss-thirdparty</id>
-            <url>http://joinup.ec.europa.eu/site/sd-dss/maven2</url>
+            <url>https://ec.europa.eu/cefdigital/artifact/content/repositories/esignaturedss/</url>
         </repository>
 	</repositories>
 
